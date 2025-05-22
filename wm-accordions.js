@@ -8,9 +8,9 @@ class wmAccordions {
   static pluginTitle = "wmAccordions";
   static isEditModeEventListenerSet = false;
   static defaultSettings = {
-    accordionLimit: 10,
+    accordionLimit: false,
     allowMultipleOpen: false,
-    initialOpen: null,
+    initialOpen: false,
     iconStyle: "plus",
     icons: {
       plus: '<div class="plus"><div class="plus__horizontal-line"></div><div class="plus__vertical-line"></div></div>',
@@ -18,7 +18,7 @@ class wmAccordions {
     },
     containerClass: "accordion-items-container",
     itemClass: "accordion-item",
-    titleWrapperTag: "h4",
+    titleTag: "h4",
     titleWrapperClass: "accordion-item__title-wrapper",
     titleButtonClass: "accordion-item__click-target",
     titleTextClass: "accordion-item__title",
@@ -26,17 +26,13 @@ class wmAccordions {
     iconContainerClass: "accordion-icon-container",
     contentDropdownClass: "accordion-item__dropdown",
     contentDescriptionClass: "accordion-item__description",
-    dividers: {
-      enabled: true,
-      showFirst: true,
-      showLast: true,
-      class: "accordion-divider",
-      topClass: "accordion-divider--top",
-    },
+    dividersEnabled: true,
+    dividersShowFirst: true,
+    dividersShowLast: true,
+    dividersClass: "accordion-divider",
+    dividersTopClass: "accordion-divider--top",
     accordionTitleAlignment: "left",
-    accordionDescriptionAlignment: "left",
-    accordionDescriptionPlacement: "left",
-    accordionIconPlacement: "right",
+    iconPlacement: "right",
   };
   static get userSettings() {
     return window[wmAccordions.pluginTitle + "Settings"] || {};
@@ -95,14 +91,19 @@ class wmAccordions {
         button => {
           const newItem = {
             title: button.textContent,
-            els: [] // Initialize els as an array
+            els: [], // Initialize els as an array
           };
           const dataTarget = button.dataset.target;
 
           if (dataTarget) {
-            const selectors = dataTarget.split(',').map(s => s.trim()).filter(s => s);
+            const selectors = dataTarget
+              .split(",")
+              .map(s => s.trim())
+              .filter(s => s);
             selectors.forEach(selector => {
-              const targetedElements = Array.from(document.querySelectorAll(selector));
+              const targetedElements = Array.from(
+                document.querySelectorAll(selector)
+              );
               newItem.els.push(...targetedElements);
               // Elements targeted by data-target are moved when appended later in buildAccordions
             });
@@ -115,10 +116,13 @@ class wmAccordions {
                 // The removal logic is now in buildAccordions
               }
             } else {
-              console.warn('[wmAccordions] Could not find parent section for button during init:', button);
+              console.warn(
+                "[wmAccordions] Could not find parent section for button during init:",
+                button
+              );
             }
           }
-          return { item: newItem };
+          return {item: newItem};
         }
       );
       this.addEditModeObserver();
@@ -127,6 +131,8 @@ class wmAccordions {
     }
 
     this._programmaticHashChangeInProgress = false;
+    // Set data-is-full-width after DOM is ready and element is in place
+    this.setIsFullWidth();
     this.buildAccordions();
 
     //Finalize Loading
@@ -179,8 +185,6 @@ class wmAccordions {
         originalParent.appendChild(this.el);
       }
 
-      // Set data-is-full-width after DOM is ready and element is in place
-      this.setIsFullWidth();
       // Listen for window resize to update the attribute
       if (!this._fullWidthResizeListenerSet && !this.settings.isFullWidth) {
         window.addEventListener("resize", this.setIsFullWidth.bind(this));
@@ -195,12 +199,14 @@ class wmAccordions {
       if (!this._hashChangeListenerSet) {
         // Store the bound function to allow for potential removal later
         this._boundHandleHashNavigation = this.handleHashNavigation.bind(this);
-        window.addEventListener('hashchange', this._boundHandleHashNavigation);
+        window.addEventListener("hashchange", this._boundHandleHashNavigation);
         this._hashChangeListenerSet = true; // Flag to prevent adding multiple listeners
       }
 
       if (this.settings.appendAfterBuild) {
-        const refernceEl = document.querySelector(this.settings.appendAfterBuild);
+        const refernceEl = document.querySelector(
+          this.settings.appendAfterBuild
+        );
         if (refernceEl) {
           refernceEl.appendChild(this.el);
         }
@@ -336,7 +342,7 @@ class wmAccordions {
         targetDescriptionDiv
       );
       // Update URL hash if data-update-url is true and the item was opened by this click
-      if (this.el.dataset.updateUrl === 'true') {
+      if (this.el.dataset.updateUrl === "true") {
         // Check if the hash is already set to this ID to avoid redundant history entries
         if (window.location.hash !== `#${accordionId}`) {
           this._programmaticHashChangeInProgress = true;
@@ -352,17 +358,13 @@ class wmAccordions {
     ul.className = this.settings.containerClass || "accordion-items-container";
 
     ul.dataset.shouldAllowMultipleOpenItems = this.settings.allowMultipleOpen;
-    ul.dataset.isDividerEnabled = this.settings.dividers.enabled;
-    ul.dataset.isFirstDividerVisible = this.settings.dividers.showFirst;
-    ul.dataset.isLastDividerVisible = this.settings.dividers.showLast;
+    ul.dataset.isDividersEnabled = this.settings.dividersEnabled;
+    ul.dataset.isFirstDividerVisible = this.settings.dividersShowFirst;
+    ul.dataset.isLastDividerVisible = this.settings.dividersShowLast;
     ul.dataset.isExpandedFirstItem =
       this.settings.initialOpen === "first" || this.settings.initialOpen === 0;
-    ul.dataset.accordionTitleAlignment = this.settings.accordionTitleAlignment;
-    ul.dataset.accordionDescriptionAlignment =
-      this.settings.accordionDescriptionAlignment;
-    ul.dataset.accordionDescriptionPlacement =
-      this.settings.accordionDescriptionPlacement;
-    ul.dataset.accordionIconPlacement = this.settings.accordionIconPlacement;
+    ul.dataset.accordionTitleAlignment = this.settings.titleAlignment;
+    ul.dataset.accordionIconPlacement = this.settings.iconPlacement;
 
     this.el.appendChild(ul);
 
@@ -425,16 +427,18 @@ class wmAccordions {
       itemElement.classList.add(this.settings.itemClass);
       itemElement.dataset.accordionId = itemId;
 
-      if (this.settings.dividers.enabled) {
-        if (isFirstItem && this.settings.dividers.showFirst) {
+      if (this.settings.dividersEnabled) {
+        if (isFirstItem && this.settings.dividersShowFirst) {
           const topDivider = document.createElement("div");
-          topDivider.className = `${this.settings.dividers.class} ${this.settings.dividers.topClass}`;
+          topDivider.className = `${this.settings.dividersClass} ${this.settings.dividersTopClass}`;
           topDivider.setAttribute("aria-hidden", "true");
           itemElement.appendChild(topDivider);
         }
       }
 
-      const titleWrapper = document.createElement(this.settings.titleWrapperTag);
+      const titleWrapper = document.createElement(
+        this.settings.titleTag
+      );
       titleWrapper.className = this.settings.titleWrapperClass;
       titleWrapper.setAttribute("role", "heading");
       titleWrapper.setAttribute("aria-level", "3");
@@ -484,7 +488,8 @@ class wmAccordions {
       contentDescriptionDiv.className = this.settings.contentDescriptionClass;
       if (accordionItem.els && accordionItem.els.length > 0) {
         accordionItem.els.forEach(el => {
-          if (el && el.parentNode) { // Ensure el exists and has a parent before trying to remove
+          if (el && el.parentNode) {
+            // Ensure el exists and has a parent before trying to remove
             el.parentNode.removeChild(el);
           }
           contentDescriptionDiv.appendChild(el);
@@ -496,15 +501,15 @@ class wmAccordions {
 
       itemElement.appendChild(contentDropdownDiv);
 
-      if (this.settings.dividers.enabled) {
-        if (isLastItem && this.settings.dividers.showLast) {
+      if (this.settings.dividersEnabled) { 
+        if (isLastItem && this.settings.dividersShowLast) {
           const bottomDivider = document.createElement("div");
-          bottomDivider.className = this.settings.dividers.class;
+          bottomDivider.className = this.settings.dividersClass;
           bottomDivider.setAttribute("aria-hidden", "true");
           itemElement.appendChild(bottomDivider);
         } else if (!isLastItem) {
           const bottomDivider = document.createElement("div");
-          bottomDivider.className = this.settings.dividers.class;
+          bottomDivider.className = this.settings.dividersClass;
           bottomDivider.setAttribute("aria-hidden", "true");
           itemElement.appendChild(bottomDivider);
         }
@@ -568,17 +573,31 @@ class wmAccordions {
     return finalId;
   }
   _applyCustomSubtextFromCSS() {
-    const itemElements = this.el.querySelectorAll(`.${this.settings.itemClass}[data-accordion-id]`);
+    const itemElements = this.el.querySelectorAll(
+      `.${this.settings.itemClass}[data-accordion-id]`
+    );
     itemElements.forEach(itemElement => {
-      const subTextSpan = itemElement.querySelector(`.${this.settings.subTextClass}`);
+      const subTextSpan = itemElement.querySelector(
+        `.${this.settings.subTextClass}`
+      );
       if (subTextSpan) {
         const computedStyle = window.getComputedStyle(itemElement);
-        let customPropertyValue = computedStyle.getPropertyValue('--wm-accordion-subtext').trim();
+        let customPropertyValue = computedStyle
+          .getPropertyValue("--wm-accordion-subtext")
+          .trim();
         if (customPropertyValue) {
           // Check if the string starts and ends with a double quote
-          if ((customPropertyValue.startsWith('"') && customPropertyValue.endsWith('"')) || (customPropertyValue.startsWith("'") && customPropertyValue.endsWith("'"))) {
+          if (
+            (customPropertyValue.startsWith('"') &&
+              customPropertyValue.endsWith('"')) ||
+            (customPropertyValue.startsWith("'") &&
+              customPropertyValue.endsWith("'"))
+          ) {
             // Remove the surrounding double quotes
-            customPropertyValue = customPropertyValue.substring(1, customPropertyValue.length - 1);
+            customPropertyValue = customPropertyValue.substring(
+              1,
+              customPropertyValue.length - 1
+            );
           }
           subTextSpan.textContent = customPropertyValue;
         }
@@ -599,7 +618,11 @@ class wmAccordions {
             if (!deconstructed && this.accordions) {
               deconstructed = true;
               this.accordions.forEach(accordion => {
-                if (accordion.item && accordion.item.els && Array.isArray(accordion.item.els)) {
+                if (
+                  accordion.item &&
+                  accordion.item.els &&
+                  Array.isArray(accordion.item.els)
+                ) {
                   accordion.item.els.forEach(el => {
                     if (el && el.parentNode) {
                       // This removes the element from its current parent (within the accordion structure)
@@ -609,7 +632,7 @@ class wmAccordions {
                 }
               });
               // Optionally, clear the main element if you want to remove titles/structure too
-              // this.el.innerHTML = ''; 
+              // this.el.innerHTML = '';
               try {
                 await wm$.reloadSquarespaceLifecycle();
               } catch (error) {
