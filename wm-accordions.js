@@ -11,6 +11,7 @@ class wmAccordions {
     accordionLimit: false,
     allowMultipleOpen: false,
     initialOpen: false,
+    titleDescriptions: false,
     iconStyle: "plus",
     icons: {
       plus: '<div class="plus"><div class="plus__horizontal-line"></div><div class="plus__vertical-line"></div></div>',
@@ -22,7 +23,7 @@ class wmAccordions {
     titleWrapperClass: "accordion-item__title-wrapper",
     titleButtonClass: "accordion-item__click-target",
     titleTextClass: "accordion-item__title",
-    subTextClass: "accordion-item__subtext",
+    titleDescriptionClass: "accordion-item__title-description",
     iconContainerClass: "accordion-icon-container",
     contentDropdownClass: "accordion-item__dropdown",
     contentDescriptionClass: "accordion-item__description",
@@ -33,6 +34,7 @@ class wmAccordions {
     dividersTopClass: "accordion-divider--top",
     accordionTitleAlignment: "left",
     iconPlacement: "right",
+    scrollToOpenContent: true,
   };
   static get userSettings() {
     return window[wmAccordions.pluginTitle + "Settings"] || {};
@@ -73,6 +75,7 @@ class wmAccordions {
     this.init();
   }
   async init() {
+    wm$?.emitEvent(`${wmAccordions.pluginTitle}:beforeInit`);
     if (this.source) {
       const {items, type} = await wm$.collectionData(this.source, {
         weglotPaths: this.settings.weglotPaths,
@@ -191,7 +194,9 @@ class wmAccordions {
         this._fullWidthResizeListenerSet = true;
       }
 
-      this._applyCustomSubtextFromCSS(); // Apply custom subtext after DOM is ready and other initializations
+      if (this.settings.titleDescriptions) {
+        this._applyCustomDescriptionFromCSS(); // Apply custom description after DOM is ready and other initializations
+      }
 
       this.handleHashNavigation(); // Initial check on page load
 
@@ -224,6 +229,12 @@ class wmAccordions {
     )
       return;
 
+    const self = this;
+    wm$?.emitEvent(`${wmAccordions.pluginTitle}:beforeOpen`, {
+      accordionId: itemElement.dataset.accordionId,
+      accordion: self,
+    });
+
     itemElement.dataset.isItemAnimating = "true";
     contentDiv.style.display = "block";
     const scrollHeight = descriptionDiv.scrollHeight + "px";
@@ -240,6 +251,21 @@ class wmAccordions {
       }
       delete itemElement.dataset.isItemAnimating;
       contentDiv.removeEventListener("transitionend", onTransitionEnd);
+
+      // Scroll into view if needed after opening
+      wm$?.emitEvent(`${wmAccordions.pluginTitle}:afterOpen`, {
+        accordionId: itemElement.dataset.accordionId,
+        accordion: self,
+      });
+      if (
+        self.settings.scrollToOpenContent &&
+        itemElement.dataset.isOpen === "true"
+      ) {
+        const contentRect = contentDiv.getBoundingClientRect();
+        if (contentRect.top < 0) {
+          itemElement.scrollIntoView({behavior: "smooth", block: "start"});
+        }
+      }
     });
   }
 
@@ -249,6 +275,12 @@ class wmAccordions {
       itemElement.dataset.isItemAnimating === "true"
     )
       return;
+
+    const self = this;
+    wm$?.emitEvent(`${wmAccordions.pluginTitle}:beforeClose`, {
+      accordionId: itemElement.dataset.accordionId,
+      accordion: self,
+    });
 
     itemElement.dataset.isItemAnimating = "true";
     const currentScrollHeight = descriptionDiv.scrollHeight + "px";
@@ -264,10 +296,15 @@ class wmAccordions {
       // if (itemElement.dataset.isOpen === 'false') { contentDiv.style.maxHeight = '0px';} // Handled by animation
       delete itemElement.dataset.isItemAnimating;
       contentDiv.removeEventListener("transitionend", onTransitionEnd);
+      wm$?.emitEvent(`${wmAccordions.pluginTitle}:afterClose`, {
+        accordionId: itemElement.dataset.accordionId,
+        accordion: self,
+      });
     });
   }
 
   openAccordion(accordionId) {
+
     const targetItemElement = this.el.querySelector(
       `.${this.settings.itemClass}[data-accordion-id="${accordionId}"]`
     );
@@ -436,9 +473,7 @@ class wmAccordions {
         }
       }
 
-      const titleWrapper = document.createElement(
-        this.settings.titleTag
-      );
+      const titleWrapper = document.createElement(this.settings.titleTag);
       titleWrapper.className = this.settings.titleWrapperClass;
       titleWrapper.setAttribute("role", "heading");
       titleWrapper.setAttribute("aria-level", "3");
@@ -456,10 +491,13 @@ class wmAccordions {
       titleTextSpan.textContent = accordionItem.title;
       maxWidthSpan.appendChild(titleTextSpan);
 
-      const subText = document.createElement("span");
-      subText.className = this.settings.subTextClass;
-      subText.textContent = accordionItem.subText;
-      titleTextSpan.appendChild(subText);
+      if (this.settings.titleDescriptions) {
+        const description = accordionItem.seoData?.seoDescription;
+        const descriptionSpan = document.createElement("span");
+        descriptionSpan.className = this.settings.titleDescriptionClass;
+        descriptionSpan.textContent = description;
+        titleTextSpan.appendChild(descriptionSpan);
+      }
 
       const iconStyle = this.settings.iconStyle;
       let iconContainer;
@@ -501,7 +539,7 @@ class wmAccordions {
 
       itemElement.appendChild(contentDropdownDiv);
 
-      if (this.settings.dividersEnabled) { 
+      if (this.settings.dividersEnabled) {
         if (isLastItem && this.settings.dividersShowLast) {
           const bottomDivider = document.createElement("div");
           bottomDivider.className = this.settings.dividersClass;
@@ -572,18 +610,18 @@ class wmAccordions {
     }
     return finalId;
   }
-  _applyCustomSubtextFromCSS() {
+  _applyCustomDescriptionFromCSS() {
     const itemElements = this.el.querySelectorAll(
       `.${this.settings.itemClass}[data-accordion-id]`
     );
     itemElements.forEach(itemElement => {
-      const subTextSpan = itemElement.querySelector(
-        `.${this.settings.subTextClass}`
+      const descriptionSpan = itemElement.querySelector(
+        `.${this.settings.titleDescriptionClass}`
       );
-      if (subTextSpan) {
+      if (descriptionSpan) {
         const computedStyle = window.getComputedStyle(itemElement);
         let customPropertyValue = computedStyle
-          .getPropertyValue("--wm-accordion-subtext")
+          .getPropertyValue("--wm-accordion-description")
           .trim();
         if (customPropertyValue) {
           // Check if the string starts and ends with a double quote
@@ -599,7 +637,7 @@ class wmAccordions {
               customPropertyValue.length - 1
             );
           }
-          subTextSpan.textContent = customPropertyValue;
+          descriptionSpan.textContent = customPropertyValue;
         }
       }
     });
