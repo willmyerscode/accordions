@@ -61,7 +61,7 @@ class wmAccordions {
       this.installationMethod = "source";
     }
     if (this.el.querySelector("button")) {
-      this.installationMethod = "sections";
+      this.installationMethod = "elements";
     }
     this.settings = wm$.deepMerge(
       {},
@@ -90,6 +90,8 @@ class wmAccordions {
     } else if (this.el.querySelector("button")) {
       this.installationMethod = "elements";
       const thisSection = this.el.closest("section");
+      let currentSection = thisSection; // Track current position for successive nextElementSibling calls
+      
       this.accordions = Array.from(this.el.querySelectorAll("button")).map(
         button => {
           const newItem = {
@@ -111,12 +113,13 @@ class wmAccordions {
               // Elements targeted by data-target are moved when appended later in buildAccordions
             });
           } else {
-            // Fallback to original nextElementSibling logic
-            if (thisSection) {
-              const nextEl = thisSection.nextElementSibling;
+            // Fallback to original nextElementSibling logic with tracking
+            if (currentSection) {
+              const nextEl = currentSection.nextElementSibling;
               if (nextEl) {
                 newItem.els.push(nextEl); // Store as an array with one element
                 // The removal logic is now in buildAccordions
+                currentSection = nextEl; // Update currentSection to the next element for the next iteration
               }
             } else {
               console.warn(
@@ -461,7 +464,7 @@ class wmAccordions {
       const isLastItem = index === this.accordions.length - 1;
 
       const itemElement = document.createElement("li");
-      itemElement.classList.add(this.settings.itemClass);
+      itemElement.classList.add(this.settings.itemClass, "wm-accordion-item");
       itemElement.dataset.accordionId = itemId;
 
       if (this.settings.dividersEnabled) {
