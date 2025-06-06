@@ -273,7 +273,7 @@
 
 [data-wm-plugin="accordions"] .wm-accordion-item > .accordion-item__title-wrapper .plus__horizontal-line,
 [data-wm-plugin="accordions"] .wm-accordion-item > .accordion-item__title-wrapper .plus__vertical-line {
-  height: 1px;
+  height: var(--wm-accordion-icon-thickness, 1px);
   display: block;
   width: 100%;
   background-color: currentColor;
@@ -302,6 +302,7 @@
 [data-wm-plugin="accordions"] .wm-accordion-item > .accordion-item__title-wrapper .arrow {
   border-color: currentColor;
   border-style: solid;
+  border-width: var(--wm-accordion-icon-thickness, 1px);
   border-top: none;
   border-left: none;
   box-sizing: border-box;
