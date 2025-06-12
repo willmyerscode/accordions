@@ -276,7 +276,7 @@
   height: var(--wm-accordion-icon-thickness, 1px);
   display: block;
   width: 100%;
-  background-color: currentColor;
+  background-color: var(--wm-accordion-icon-color, currentColor);
   transition: transform 0.2s;
   position: absolute;
 }
@@ -300,7 +300,7 @@
 }
 
 [data-wm-plugin="accordions"] .wm-accordion-item > .accordion-item__title-wrapper .arrow {
-  border-color: currentColor;
+  border-color: var(--wm-accordion-icon-color, currentColor);
   border-style: solid;
   border-width: var(--wm-accordion-icon-thickness, 1px);
   border-top: none;
