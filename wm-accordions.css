@@ -335,6 +335,10 @@
   margin: 2rem 0px;
   order: 5;
 }
+.product-detail .product-meta [data-wm-plugin="accordions"] {
+  margin: 2rem 0px;
+  order: 5;
+}
 
 /*Remove Pagination from Portfolio Grid*/
 [data-wm-plugin="accordions"] .accordion-item__description > #itemPagination {
