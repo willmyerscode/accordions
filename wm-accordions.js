@@ -212,6 +212,13 @@ class wmAccordions {
       }
 
       if (this.settings.appendAfterBuild) {
+
+        // Continuity workaround for accordion in product details
+        if (this.settings.appendAfterBuild === ".ProductItem-details-checkout") {
+          this.el.dataset.appendAfterBuild = ".ProductItem-details-checkout, .product-detail .product-meta"
+          this.settings.appendAfterBuild = ".ProductItem-details-checkout, .product-detail .product-meta"
+        }
+
         const refernceEl = document.querySelector(
           this.settings.appendAfterBuild
         );
@@ -224,7 +231,6 @@ class wmAccordions {
       this.loadingState = "complete";
     }
   }
-
   _performOpen(itemElement, titleButton, contentDiv, descriptionDiv) {
     if (
       itemElement.dataset.isOpen === "true" ||
@@ -271,7 +277,6 @@ class wmAccordions {
       }
     });
   }
-
   _performClose(itemElement, titleButton, contentDiv, descriptionDiv) {
     if (
       itemElement.dataset.isOpen === "false" ||
@@ -305,7 +310,6 @@ class wmAccordions {
       });
     });
   }
-
   openAccordion(accordionId) {
 
     const targetItemElement = this.el.querySelector(
