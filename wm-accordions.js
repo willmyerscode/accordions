@@ -7,6 +7,7 @@
 class wmAccordions {
   static pluginTitle = "wmAccordions";
   static isEditModeEventListenerSet = false;
+  static hasDeconstructedForEditMode = false;
   static defaultSettings = {
     accordionLimit: false,
     allowMultipleOpen: false,
@@ -653,31 +654,21 @@ class wmAccordions {
     const isBackend = window.self !== window.top;
     if (wmAccordions.isEditModeEventListenerSet || !isBackend) return;
 
-    let deconstructed = false;
     // Observe changes to the body's class attribute
     const bodyObserver = new MutationObserver(async mutations => {
       for (const mutation of mutations) {
         if (mutation.attributeName === "class") {
           const classList = document.body.classList;
-          if (classList.contains("sqs-edit-mode-active")) {
-            if (!deconstructed && this.accordions) {
-              deconstructed = true;
-              this.accordions.forEach(accordion => {
-                if (
-                  accordion.item &&
-                  accordion.item.els &&
-                  Array.isArray(accordion.item.els)
-                ) {
-                  accordion.item.els.forEach(el => {
-                    if (el && el.parentNode) {
-                      // This removes the element from its current parent (within the accordion structure)
-                      el.parentNode.removeChild(el);
-                    }
-                  });
-                }
+          if (classList.contains("sqs-is-page-editing")) {
+            if (!wmAccordions.hasDeconstructedForEditMode) {
+              wmAccordions.hasDeconstructedForEditMode = true;
+
+              // Deconstruct ALL instances on the page
+              const allAccordionEls = document.querySelectorAll('[data-wm-plugin="accordions"]');
+              allAccordionEls.forEach(accEl => {
+                accEl.innerHTML = '';
               });
-              // Optionally, clear the main element if you want to remove titles/structure too
-              // this.el.innerHTML = '';
+
               try {
                 await wm$.reloadSquarespaceLifecycle();
               } catch (error) {
