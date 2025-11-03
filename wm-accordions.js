@@ -154,9 +154,9 @@ class wmAccordions {
     }
 
     async function handleDOMReady() {
-      const sections = document.querySelector("#sections");
+      const sections = document.querySelector("#sections, #page-regions");
       const lastSection = document.querySelector(
-        "#sections > section:last-child .content-wrapper"
+        "#sections > section:last-child .content-wrapper, #page-regions > section:last-child .content-wrapper"
       );
 
       let originalParent = this.el.parentNode;
@@ -460,6 +460,7 @@ class wmAccordions {
     }
 
     let firstMarkedToOpenProcessed = false;
+
 
     this.accordions.forEach((accordionData, index) => {
       const accordionItem = accordionData.item;
