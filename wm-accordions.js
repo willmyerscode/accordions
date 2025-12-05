@@ -255,7 +255,10 @@ class wmAccordions {
     itemElement.dataset.isOpen = "true";
     titleButton.setAttribute("aria-expanded", "true");
 
-    contentDiv.addEventListener("transitionend", function onTransitionEnd() {
+    let transitionEnded = false;
+    const onTransitionEnd = () => {
+      if (transitionEnded) return;
+      transitionEnded = true;
       if (itemElement.dataset.isOpen === "true") {
         contentDiv.style.maxHeight = "none";
       }
@@ -276,7 +279,12 @@ class wmAccordions {
           itemElement.scrollIntoView({behavior: "smooth", block: "start"});
         }
       }
-    });
+    };
+
+    contentDiv.addEventListener("transitionend", onTransitionEnd);
+
+    // Fallback timeout in case transitionend doesn't fire (e.g., reduced motion, display issues)
+    setTimeout(onTransitionEnd, 400);
   }
   _performClose(itemElement, titleButton, contentDiv, descriptionDiv) {
     if (
@@ -295,21 +303,32 @@ class wmAccordions {
     const currentScrollHeight = descriptionDiv.scrollHeight + "px";
     contentDiv.style.maxHeight = currentScrollHeight;
 
+    // Force reflow so browser registers the maxHeight value before animating to 0
+    // This fixes Firefox where transition from "none" → "Xpx" → "0px" wouldn't animate
+    void contentDiv.offsetHeight;
+
     requestAnimationFrame(() => {
       contentDiv.style.maxHeight = "0px";
     });
     itemElement.dataset.isOpen = "false";
     titleButton.setAttribute("aria-expanded", "false");
 
-    contentDiv.addEventListener("transitionend", function onTransitionEnd() {
-      // if (itemElement.dataset.isOpen === 'false') { contentDiv.style.maxHeight = '0px';} // Handled by animation
+    let transitionEnded = false;
+    const onTransitionEnd = () => {
+      if (transitionEnded) return;
+      transitionEnded = true;
       delete itemElement.dataset.isItemAnimating;
       contentDiv.removeEventListener("transitionend", onTransitionEnd);
       wm$?.emitEvent(`${wmAccordions.pluginTitle}:afterClose`, {
         accordionId: itemElement.dataset.accordionId,
         accordion: self,
       });
-    });
+    };
+
+    contentDiv.addEventListener("transitionend", onTransitionEnd);
+
+    // Fallback timeout in case transitionend doesn't fire (e.g., reduced motion, display issues)
+    setTimeout(onTransitionEnd, 400);
   }
   openAccordion(accordionId) {
 
